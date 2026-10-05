@@ -1,0 +1,1685 @@
+name: 🍎 Apple Game Auto APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # =========================================================
+      # 1. GitHub 저장소 가져오기
+      # =========================================================
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+
+      # =========================================================
+      # 2. Java 17 설치
+      # =========================================================
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+
+      # =========================================================
+      # 3. Android 프로젝트 폴더 생성
+      # =========================================================
+
+      - name: Create Android project
+        shell: bash
+        run: |
+
+          mkdir -p app/src/main/java/com/example/applegameauto
+          mkdir -p app/src/main/res/layout
+          mkdir -p app/src/main/res/values
+          mkdir -p app/src/main/res/xml
+
+
+          # =====================================================
+          # settings.gradle.kts
+          # =====================================================
+
+          cat > settings.gradle.kts <<'EOF'
+
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+
+          dependencyResolutionManagement {
+              repositoriesMode.set(
+                  RepositoriesMode.FAIL_ON_PROJECT_REPOS
+              )
+
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+
+          rootProject.name = "AppleGameAuto"
+
+          include(":app")
+
+          EOF
+
+
+          # =====================================================
+          # build.gradle.kts
+          # =====================================================
+
+          cat > build.gradle.kts <<'EOF'
+
+          plugins {
+              id("com.android.application") version "8.7.3" apply false
+              id("org.jetbrains.kotlin.android") version "2.0.21" apply false
+          }
+
+          EOF
+
+
+          # =====================================================
+          # gradle.properties
+          # =====================================================
+
+          cat > gradle.properties <<'EOF'
+
+          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+          android.useAndroidX=true
+          kotlin.code.style=official
+
+          EOF
+
+
+          # =====================================================
+          # app/build.gradle.kts
+          # =====================================================
+
+          cat > app/build.gradle.kts <<'EOF'
+
+          plugins {
+              id("com.android.application")
+              id("org.jetbrains.kotlin.android")
+          }
+
+          android {
+
+              namespace = "com.example.applegameauto"
+
+              compileSdk = 35
+
+              defaultConfig {
+
+                  applicationId =
+                      "com.example.applegameauto"
+
+                  minSdk = 26
+
+                  targetSdk = 35
+
+                  versionCode = 1
+
+                  versionName = "1.0"
+              }
+
+              buildTypes {
+
+                  release {
+
+                      isMinifyEnabled = false
+                  }
+              }
+
+              compileOptions {
+
+                  sourceCompatibility =
+                      JavaVersion.VERSION_17
+
+                  targetCompatibility =
+                      JavaVersion.VERSION_17
+              }
+
+              kotlinOptions {
+
+                  jvmTarget = "17"
+              }
+          }
+
+          dependencies {
+
+              implementation(
+                  "androidx.core:core-ktx:1.15.0"
+              )
+
+              implementation(
+                  "androidx.appcompat:appcompat:1.7.0"
+              )
+
+              implementation(
+                  "com.google.android.material:material:1.12.0"
+              )
+
+              implementation(
+                  "com.google.mlkit:text-recognition:16.0.1"
+              )
+          }
+
+          EOF
+
+
+          # =====================================================
+          # AndroidManifest.xml
+          # =====================================================
+
+          cat > app/src/main/AndroidManifest.xml <<'EOF'
+
+          <?xml version="1.0" encoding="utf-8"?>
+
+          <manifest
+              xmlns:android="http://schemas.android.com/apk/res/android">
+
+              <uses-permission
+                  android:name="android.permission.FOREGROUND_SERVICE" />
+
+              <uses-permission
+                  android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+
+
+              <application
+
+                  android:allowBackup="true"
+
+                  android:label="사과게임 자동 플레이"
+
+                  android:supportsRtl="true"
+
+                  android:theme="@style/AppTheme">
+
+
+                  <activity
+
+                      android:name=".MainActivity"
+
+                      android:exported="true">
+
+
+                      <intent-filter>
+
+                          <action
+                              android:name="android.intent.action.MAIN" />
+
+                          <category
+                              android:name="android.intent.category.LAUNCHER" />
+
+                      </intent-filter>
+
+                  </activity>
+
+
+                  <service
+
+                      android:name=".GameCaptureService"
+
+                      android:exported="false"
+
+                      android:foregroundServiceType="mediaProjection" />
+
+
+                  <service
+
+                      android:name=".AppleAccessibilityService"
+
+                      android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
+
+                      android:exported="false">
+
+
+                      <intent-filter>
+
+                          <action
+                              android:name="android.accessibilityservice.AccessibilityService" />
+
+                      </intent-filter>
+
+
+                      <meta-data
+
+                          android:name="android.accessibilityservice"
+
+                          android:resource="@xml/accessibility_service_config" />
+
+                  </service>
+
+              </application>
+
+          </manifest>
+
+          EOF
+
+
+          # =====================================================
+          # strings.xml
+          # =====================================================
+
+          cat > app/src/main/res/values/strings.xml <<'EOF'
+
+          <?xml version="1.0" encoding="utf-8"?>
+
+          <resources>
+
+              <string name="app_name">
+                  사과게임 자동 플레이
+              </string>
+
+              <string name="accessibility_description">
+                  사과게임 자동 드래그
+              </string>
+
+          </resources>
+
+          EOF
+
+
+          # =====================================================
+          # styles.xml
+          # =====================================================
+
+          cat > app/src/main/res/values/styles.xml <<'EOF'
+
+          <?xml version="1.0" encoding="utf-8"?>
+
+          <resources>
+
+              <style
+                  name="AppTheme"
+                  parent="Theme.Material3.DayNight.NoActionBar">
+
+                  <item name="android:fontFamily">
+                      sans
+                  </item>
+
+                  <item name="android:statusBarColor">
+                      #FFFFFF
+                  </item>
+
+              </style>
+
+          </resources>
+
+          EOF
+
+
+          # =====================================================
+          # accessibility_service_config.xml
+          # =====================================================
+
+          cat > app/src/main/res/xml/accessibility_service_config.xml <<'EOF'
+
+          <?xml version="1.0" encoding="utf-8"?>
+
+          <accessibility-service
+
+              xmlns:android="http://schemas.android.com/apk/res/android"
+
+              android:description="@string/accessibility_description"
+
+              android:accessibilityEventTypes="typeAllMask"
+
+              android:accessibilityFeedbackType="feedbackGeneric"
+
+              android:notificationTimeout="100"
+
+              android:canRetrieveWindowContent="false"
+
+              android:canPerformGestures="true" />
+
+          EOF
+
+
+          # =====================================================
+          # activity_main.xml
+          # =====================================================
+
+          cat > app/src/main/res/layout/activity_main.xml <<'EOF'
+
+          <?xml version="1.0" encoding="utf-8"?>
+
+          <ScrollView
+
+              xmlns:android="http://schemas.android.com/apk/res/android"
+
+              android:layout_width="match_parent"
+
+              android:layout_height="match_parent">
+
+
+              <LinearLayout
+
+                  android:orientation="vertical"
+
+                  android:padding="20dp"
+
+                  android:layout_width="match_parent"
+
+                  android:layout_height="wrap_content">
+
+
+                  <TextView
+
+                      android:text="🍎 사과게임 자동 플레이"
+
+                      android:textSize="25sp"
+
+                      android:textStyle="bold"
+
+                      android:layout_width="match_parent"
+
+                      android:layout_height="wrap_content" />
+
+
+                  <TextView
+
+                      android:id="@+id/status"
+
+                      android:text="준비 중"
+
+                      android:textSize="16sp"
+
+                      android:paddingTop="15dp"
+
+                      android:paddingBottom="15dp"
+
+                      android:layout_width="match_parent"
+
+                      android:layout_height="wrap_content" />
+
+
+                  <Button
+
+                      android:id="@+id/accessibilityButton"
+
+                      android:text="① 자동 터치 권한 설정"
+
+                      android:layout_width="match_parent"
+
+                      android:layout_height="wrap_content" />
+
+
+                  <Button
+
+                      android:id="@+id/captureButton"
+
+                      android:text="② 화면 캡처 권한 허용"
+
+                      android:layout_width="match_parent"
+
+                      android:layout_height="wrap_content" />
+
+
+                  <Button
+
+                      android:id="@+id/startButton"
+
+                      android:text="③ 자동 플레이 시작"
+
+                      android:textSize="18sp"
+
+                      android:layout_marginTop="20dp"
+
+                      android:layout_width="match_parent"
+
+                      android:layout_height="wrap_content" />
+
+
+                  <Button
+
+                      android:id="@+id/stopButton"
+
+                      android:text="자동 플레이 중지"
+
+                      android:layout_width="match_parent"
+
+                      android:layout_height="wrap_content" />
+
+
+                  <TextView
+
+                      android:text="사진 기준 게임판: 18열 × 9행&#10;&#10;기준 화면: 1536 × 960&#10;&#10;첫 사과 중심: 약 (96, 200)&#10;&#10;사과 간격: 약 78.3px&#10;&#10;실제 화면의 해상도가 달라도 비율을 자동으로 보정합니다."
+
+                      android:textSize="15sp"
+
+                      android:paddingTop="20dp"
+
+                      android:layout_width="match_parent"
+
+                      android:layout_height="wrap_content" />
+
+              </LinearLayout>
+
+          </ScrollView>
+
+          EOF
+
+
+          # =====================================================
+          # MainActivity.kt
+          # =====================================================
+
+          cat > app/src/main/java/com/example/applegameauto/MainActivity.kt <<'EOF'
+
+          package com.example.applegameauto
+
+          import android.app.Activity
+          import android.content.Intent
+          import android.media.projection.MediaProjectionManager
+          import android.os.Bundle
+          import android.provider.Settings
+          import android.widget.Button
+          import android.widget.TextView
+
+          class MainActivity : Activity() {
+
+              companion object {
+
+                  private const val CAPTURE_REQUEST = 1001
+              }
+
+
+              private lateinit var status: TextView
+
+
+              override fun onCreate(
+                  savedInstanceState: Bundle?
+              ) {
+
+                  super.onCreate(
+                      savedInstanceState
+                  )
+
+
+                  setContentView(
+                      R.layout.activity_main
+                  )
+
+
+                  status =
+                      findViewById(
+                          R.id.status
+                      )
+
+
+                  findViewById<Button>(
+                      R.id.accessibilityButton
+                  ).setOnClickListener {
+
+                      startActivity(
+                          Intent(
+                              Settings.ACTION_ACCESSIBILITY_SETTINGS
+                          )
+                      )
+                  }
+
+
+                  findViewById<Button>(
+                      R.id.captureButton
+                  ).setOnClickListener {
+
+                      val manager =
+                          getSystemService(
+                              MediaProjectionManager::class.java
+                          )
+
+
+                      startActivityForResult(
+                          manager.createScreenCaptureIntent(),
+                          CAPTURE_REQUEST
+                      )
+                  }
+
+
+                  findViewById<Button>(
+                      R.id.startButton
+                  ).setOnClickListener {
+
+                      if (
+                          AppleAccessibilityService.instance ==
+                          null
+                      ) {
+
+                          status.text =
+                              "자동 터치 권한을 먼저 허용하세요."
+
+                          return@setOnClickListener
+                      }
+
+
+                      if (
+                          GameCaptureService.startIntent ==
+                          null
+                      ) {
+
+                          status.text =
+                              "화면 캡처 권한을 먼저 허용하세요."
+
+                          return@setOnClickListener
+                      }
+
+
+                      val intent =
+                          Intent(
+                              this,
+                              GameCaptureService::class.java
+                          )
+
+
+                      if (
+                          android.os.Build.VERSION.SDK_INT >=
+                          android.os.Build.VERSION_CODES.O
+                      ) {
+
+                          startForegroundService(
+                              intent
+                          )
+
+                      } else {
+
+                          startService(
+                              intent
+                          )
+                      }
+
+
+                      status.text =
+                          "자동 플레이 실행 중..."
+                  }
+
+
+                  findViewById<Button>(
+                      R.id.stopButton
+                  ).setOnClickListener {
+
+                      stopService(
+                          Intent(
+                              this,
+                              GameCaptureService::class.java
+                          )
+                      )
+
+
+                      status.text =
+                          "자동 플레이 중지"
+                  }
+              }
+
+
+              override fun onActivityResult(
+                  requestCode: Int,
+                  resultCode: Int,
+                  data: Intent?
+              ) {
+
+                  super.onActivityResult(
+                      requestCode,
+                      resultCode,
+                      data
+                  )
+
+
+                  if (
+                      requestCode == CAPTURE_REQUEST &&
+                      resultCode == RESULT_OK &&
+                      data != null
+                  ) {
+
+                      GameCaptureService.startIntent =
+                          data
+
+
+                      status.text =
+                          "화면 캡처 권한 허용 완료"
+                  }
+              }
+          }
+
+          EOF
+
+
+          # =====================================================
+          # AppleAccessibilityService.kt
+          # =====================================================
+
+          cat > app/src/main/java/com/example/applegameauto/AppleAccessibilityService.kt <<'EOF'
+
+          package com.example.applegameauto
+
+          import android.accessibilityservice.AccessibilityService
+          import android.accessibilityservice.GestureDescription
+          import android.graphics.Path
+          import android.os.Build
+          import android.view.accessibility.AccessibilityEvent
+
+          class AppleAccessibilityService :
+              AccessibilityService() {
+
+              companion object {
+
+                  @Volatile
+
+                  var instance:
+                      AppleAccessibilityService? =
+                          null
+              }
+
+
+              override fun onServiceConnected() {
+
+                  super.onServiceConnected()
+
+                  instance = this
+              }
+
+
+              override fun onAccessibilityEvent(
+                  event: AccessibilityEvent?
+              ) {
+              }
+
+
+              override fun onInterrupt() {
+              }
+
+
+              fun drag(
+
+                  startX: Float,
+
+                  startY: Float,
+
+                  endX: Float,
+
+                  endY: Float,
+
+                  duration: Long = 220L
+
+              ): Boolean {
+
+
+                  if (
+                      Build.VERSION.SDK_INT <
+                      Build.VERSION_CODES.N
+                  ) {
+
+                      return false
+                  }
+
+
+                  val path =
+                      Path()
+
+
+                  path.moveTo(
+                      startX,
+                      startY
+                  )
+
+
+                  path.lineTo(
+                      endX,
+                      endY
+                  )
+
+
+                  val stroke =
+                      GestureDescription
+                          .StrokeDescription(
+
+                              path,
+
+                              0,
+
+                              duration
+                          )
+
+
+                  val gesture =
+                      GestureDescription
+                          .Builder()
+
+                          .addStroke(
+                              stroke
+                          )
+
+                          .build()
+
+
+                  return dispatchGesture(
+                      gesture,
+                      null,
+                      null
+                  )
+              }
+
+
+              override fun onDestroy() {
+
+                  instance = null
+
+                  super.onDestroy()
+              }
+          }
+
+          EOF
+
+
+          # =====================================================
+          # GameCaptureService.kt
+          # =====================================================
+
+          cat > app/src/main/java/com/example/applegameauto/GameCaptureService.kt <<'EOF'
+
+          package com.example.applegameauto
+
+          import android.app.Activity
+          import android.app.Notification
+          import android.app.NotificationChannel
+          import android.app.NotificationManager
+          import android.app.Service
+          import android.content.Intent
+          import android.graphics.Bitmap
+          import android.graphics.PixelFormat
+          import android.hardware.display.DisplayManager
+          import android.hardware.display.VirtualDisplay
+          import android.media.Image
+          import android.media.ImageReader
+          import android.media.projection.MediaProjection
+          import android.media.projection.MediaProjectionManager
+          import android.os.Build
+          import android.os.Handler
+          import android.os.IBinder
+          import android.os.Looper
+          import com.google.mlkit.vision.common.InputImage
+          import com.google.mlkit.vision.text.TextRecognition
+          import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+          import java.util.concurrent.Executors
+
+          class GameCaptureService :
+              Service() {
+
+
+              companion object {
+
+                  @Volatile
+
+                  var startIntent:
+                      Intent? = null
+
+
+                  private const val CHANNEL =
+                      "apple_game"
+
+
+                  private const val NOTIFICATION_ID =
+                      100
+
+
+                  /*
+                   * 네가 보낸 사진 기준
+                   */
+
+                  private const val REF_WIDTH =
+                      1536f
+
+
+                  private const val REF_HEIGHT =
+                      960f
+
+
+                  /*
+                   * 18 × 9
+                   */
+
+                  private const val COLS =
+                      18
+
+
+                  private const val ROWS =
+                      9
+
+
+                  /*
+                   * 첫 번째 사과 중심
+                   */
+
+                  private const val FIRST_X =
+                      96f
+
+
+                  private const val FIRST_Y =
+                      200f
+
+
+                  /*
+                   * 사과 간격
+                   */
+
+                  private const val X_GAP =
+                      78.3f
+
+
+                  private const val Y_GAP =
+                      78.3f
+              }
+
+
+              private var projection:
+                  MediaProjection? =
+                      null
+
+
+              private var display:
+                  VirtualDisplay? =
+                      null
+
+
+              private var reader:
+                  ImageReader? =
+                      null
+
+
+              private val executor =
+                  Executors.newSingleThreadExecutor()
+
+
+              private var processing =
+                  false
+
+
+              private var lastAction =
+                  0L
+
+
+              override fun onCreate() {
+
+                  super.onCreate()
+
+                  createNotificationChannel()
+
+
+                  val notification =
+                      Notification.Builder(
+                          this,
+                          CHANNEL
+                      )
+
+                          .setContentTitle(
+                              "사과게임 자동 플레이"
+                          )
+
+                          .setContentText(
+                              "게임판 분석 중"
+                          )
+
+                          .setSmallIcon(
+                              android.R.drawable.ic_media_play
+                          )
+
+                          .setOngoing(true)
+
+                          .build()
+
+
+                  startForeground(
+                      NOTIFICATION_ID,
+                      notification
+                  )
+              }
+
+
+              override fun onStartCommand(
+                  intent: Intent?,
+                  flags: Int,
+                  startId: Int
+              ): Int {
+
+
+                  if (
+                      projection == null
+                  ) {
+
+                      startCapture()
+                  }
+
+
+                  return START_NOT_STICKY
+              }
+
+
+              private fun startCapture() {
+
+                  val data =
+                      startIntent
+                          ?: run {
+
+                              stopSelf()
+
+                              return
+                          }
+
+
+                  val manager =
+                      getSystemService(
+                          MediaProjectionManager::class.java
+                      )
+
+
+                  projection =
+                      manager.getMediaProjection(
+                          Activity.RESULT_OK,
+                          data
+                      )
+
+
+                  val metrics =
+                      resources.displayMetrics
+
+
+                  val width =
+                      metrics.widthPixels
+
+
+                  val height =
+                      metrics.heightPixels
+
+
+                  reader =
+                      ImageReader.newInstance(
+
+                          width,
+
+                          height,
+
+                          PixelFormat.RGBA_8888,
+
+                          2
+                      )
+
+
+                  display =
+                      projection?.createVirtualDisplay(
+
+                          "AppleGameCapture",
+
+                          width,
+
+                          height,
+
+                          metrics.densityDpi,
+
+                          DisplayManager
+                              .VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+
+                          reader!!.surface,
+
+                          null,
+
+                          Handler(
+                              Looper.getMainLooper()
+                          )
+                      )
+
+
+                  reader?.setOnImageAvailableListener(
+
+                      { imageReader ->
+
+
+                          if (
+                              processing ||
+                              System.currentTimeMillis() -
+                              lastAction < 500
+                          ) {
+
+                              imageReader
+                                  .acquireLatestImage()
+                                  ?.close()
+
+                              return@setOnImageAvailableListener
+                          }
+
+
+                          val image =
+                              imageReader
+                                  .acquireLatestImage()
+                                  ?: return@setOnImageAvailableListener
+
+
+                          processing = true
+
+
+                          executor.execute {
+
+                              try {
+
+                                  analyzeScreen(
+                                      image
+                                  )
+
+                              } finally {
+
+                                  image.close()
+
+                                  processing =
+                                      false
+                              }
+                          }
+
+                      },
+
+                      Handler(
+                          Looper.getMainLooper()
+                      )
+                  )
+              }
+
+
+              /*
+               * 화면 분석
+               */
+
+              private fun analyzeScreen(
+                  image: Image
+              ) {
+
+
+                  val bitmap =
+                      imageToBitmap(
+                          image
+                      )
+                          ?: return
+
+
+                  val scaleX =
+                      bitmap.width /
+                      REF_WIDTH
+
+
+                  val scaleY =
+                      bitmap.height /
+                      REF_HEIGHT
+
+
+                  val board =
+                      Array(
+                          ROWS
+                      ) {
+
+                          IntArray(
+                              COLS
+                          )
+                      }
+
+
+                  val recognizer =
+                      TextRecognition
+                          .getClient(
+                              TextRecognizerOptions
+                                  .DEFAULT_OPTIONS
+                          )
+
+
+                  recognizer
+                      .process(
+                          InputImage.fromBitmap(
+                              bitmap,
+                              0
+                          )
+                      )
+
+                      .addOnSuccessListener {
+
+                          result ->
+
+
+                          for (
+                              block in
+                              result.textBlocks
+                          ) {
+
+
+                              for (
+                                  line in
+                                  block.lines
+                              ) {
+
+
+                                  for (
+                                      element in
+                                      line.elements
+                                  ) {
+
+
+                                      val number =
+                                          element.text
+                                              .filter {
+                                                  it.isDigit()
+                                              }
+                                              .toIntOrNull()
+                                              ?: continue
+
+
+                                      if (
+                                          number !in 1..9
+                                      ) {
+
+                                          continue
+                                      }
+
+
+                                      val box =
+                                          element.boundingBox
+                                              ?: continue
+
+
+                                      val x =
+                                          box.centerX() /
+                                          scaleX
+
+
+                                      val y =
+                                          box.centerY() /
+                                          scaleY
+
+
+                                      val col =
+                                          (
+                                              x -
+                                              FIRST_X
+                                          ) /
+                                          X_GAP
+
+
+                                      val row =
+                                          (
+                                              y -
+                                              FIRST_Y
+                                          ) /
+                                          Y_GAP
+
+
+                                      val c =
+                                          col.toInt()
+
+
+                                      val r =
+                                          row.toInt()
+
+
+                                      if (
+                                          r in
+                                          0 until ROWS &&
+                                          c in
+                                          0 until COLS
+                                      ) {
+
+                                          board[r][c] =
+                                              number
+                                      }
+                                  }
+                              }
+                          }
+
+
+                          val rectangle =
+                              findSum10(
+                                  board
+                              )
+
+
+                          if (
+                              rectangle != null
+                          ) {
+
+                              dragRectangle(
+                                  rectangle,
+                                  scaleX,
+                                  scaleY
+                              )
+                          }
+
+
+                          recognizer.close()
+
+                          bitmap.recycle()
+                      }
+
+                      .addOnFailureListener {
+
+                          recognizer.close()
+
+                          bitmap.recycle()
+                      }
+              }
+
+
+              data class Rectangle(
+
+                  val top: Int,
+
+                  val left: Int,
+
+                  val bottom: Int,
+
+                  val right: Int
+              )
+
+
+              /*
+               * 합이 10인 영역 찾기
+               */
+
+              private fun findSum10(
+                  board: Array<IntArray>
+              ): Rectangle? {
+
+
+                  val prefix =
+                      Array(
+                          ROWS + 1
+                      ) {
+
+                          IntArray(
+                              COLS + 1
+                          )
+                      }
+
+
+                  for (
+                      r in 0 until ROWS
+                  ) {
+
+                      for (
+                          c in 0 until COLS
+                      ) {
+
+                          prefix[r + 1][c + 1] =
+
+                              board[r][c] +
+
+                              prefix[r][c + 1] +
+
+                              prefix[r + 1][c] -
+
+                              prefix[r][c]
+                      }
+                  }
+
+
+                  var best:
+                      Rectangle? =
+                          null
+
+
+                  var bestArea =
+                      Int.MAX_VALUE
+
+
+                  /*
+                   * 모든 직사각형 검사
+                   */
+
+                  for (
+                      top in 0 until ROWS
+                  ) {
+
+                      for (
+                          bottom in top until ROWS
+                      ) {
+
+                          for (
+                              left in 0 until COLS
+                          ) {
+
+                              for (
+                                  right in left until COLS
+                              ) {
+
+
+                                  val sum =
+
+                                      prefix[
+                                          bottom + 1
+                                      ][
+                                          right + 1
+                                      ] -
+
+                                      prefix[
+                                          top
+                                      ][
+                                          right + 1
+                                      ] -
+
+                                      prefix[
+                                          bottom + 1
+                                      ][
+                                          left
+                                      ] +
+
+                                      prefix[
+                                          top
+                                      ][
+                                          left
+                                      ]
+
+
+                                  if (
+                                      sum != 10
+                                  ) {
+
+                                      continue
+                                  }
+
+
+                                  val area =
+
+                                      (
+                                          bottom -
+                                          top +
+                                          1
+                                      ) *
+
+                                      (
+                                          right -
+                                          left +
+                                          1
+                                      )
+
+
+                                  if (
+                                      area <
+                                      bestArea
+                                  ) {
+
+                                      bestArea =
+                                          area
+
+
+                                      best =
+                                          Rectangle(
+
+                                              top,
+
+                                              left,
+
+                                              bottom,
+
+                                              right
+                                          )
+                                  }
+                              }
+                          }
+                      }
+                  }
+
+
+                  return best
+              }
+
+
+              /*
+               * 실제 드래그
+               */
+
+              private fun dragRectangle(
+
+                  rectangle:
+                      Rectangle,
+
+                  scaleX:
+                      Float,
+
+                  scaleY:
+                      Float
+              ) {
+
+
+                  val service =
+                      AppleAccessibilityService
+                          .instance
+                          ?: return
+
+
+                  val startX =
+
+                      (
+                          FIRST_X +
+
+                          rectangle.left *
+                          X_GAP
+                      ) *
+
+                      scaleX
+
+
+                  val startY =
+
+                      (
+                          FIRST_Y +
+
+                          rectangle.top *
+                          Y_GAP
+                      ) *
+
+                      scaleY
+
+
+                  val endX =
+
+                      (
+                          FIRST_X +
+
+                          rectangle.right *
+                          X_GAP
+                      ) *
+
+                      scaleX
+
+
+                  val endY =
+
+                      (
+                          FIRST_Y +
+
+                          rectangle.bottom *
+                          Y_GAP
+                      ) *
+
+                      scaleY
+
+
+                  service.drag(
+
+                      startX,
+
+                      startY,
+
+                      endX,
+
+                      endY,
+
+                      220L
+                  )
+
+
+                  lastAction =
+                      System.currentTimeMillis()
+              }
+
+
+              /*
+               * Image → Bitmap
+               */
+
+              private fun imageToBitmap(
+                  image: Image
+              ): Bitmap? {
+
+
+                  val plane =
+                      image.planes[0]
+
+
+                  val buffer =
+                      plane.buffer
+
+
+                  val pixelStride =
+                      plane.pixelStride
+
+
+                  val rowStride =
+                      plane.rowStride
+
+
+                  val rowPadding =
+
+                      rowStride -
+
+                      pixelStride *
+                      image.width
+
+
+                  val bitmap =
+                      Bitmap.createBitmap(
+
+                          image.width +
+                          rowPadding /
+                          pixelStride,
+
+                          image.height,
+
+                          Bitmap.Config.ARGB_8888
+                      )
+
+
+                  buffer.rewind()
+
+
+                  bitmap.copyPixelsFromBuffer(
+                      buffer
+                  )
+
+
+                  if (
+                      bitmap.width ==
+                      image.width
+                  ) {
+
+                      return bitmap
+                  }
+
+
+                  return Bitmap.createBitmap(
+
+                      bitmap,
+
+                      0,
+
+                      0,
+
+                      image.width,
+
+                      image.height
+
+                  ).also {
+
+                      bitmap.recycle()
+                  }
+              }
+
+
+              private fun createNotificationChannel() {
+
+                  if (
+                      Build.VERSION.SDK_INT >=
+                      Build.VERSION_CODES.O
+                  ) {
+
+
+                      val manager =
+                          getSystemService(
+                              NotificationManager::class.java
+                          )
+
+
+                      manager.createNotificationChannel(
+
+                          NotificationChannel(
+
+                              CHANNEL,
+
+                              "사과게임 자동 플레이",
+
+                              NotificationManager
+                                  .IMPORTANCE_LOW
+                          )
+                      )
+                  }
+              }
+
+
+              override fun onDestroy() {
+
+                  reader?.close()
+
+                  display?.release()
+
+                  projection?.stop()
+
+                  executor.shutdownNow()
+
+                  super.onDestroy()
+              }
+
+
+              override fun onBind(
+                  intent: Intent?
+              ): IBinder? {
+
+                  return null
+              }
+          }
+
+          EOF
+
+
+      # =========================================================
+      # 4. Gradle로 APK 빌드
+      # =========================================================
+
+      - name: Build APK
+        run: gradle assembleDebug --stacktrace
+
+
+      # =========================================================
+      # 5. APK를 GitHub Actions 결과에 올리기
+      # =========================================================
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+
+        with:
+
+          name: AppleGameAuto-debug
+
+          path: app/build/outputs/apk/debug/app-debug.apk
