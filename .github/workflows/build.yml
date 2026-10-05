@@ -8,8 +8,18 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
+
+      # ============================================================
+      # 1. GitHub 저장소 가져오기
+      # ============================================================
+
       - name: Checkout
         uses: actions/checkout@v4
+
+
+      # ============================================================
+      # 2. Java 17
+      # ============================================================
 
       - name: Setup Java 17
         uses: actions/setup-java@v5
@@ -17,16 +27,22 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+
+      # ============================================================
+      # 3. Gradle
+      # ============================================================
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.10.2"
 
-      # ------------------------------------------------------------
-      # Android project
-      # ------------------------------------------------------------
 
-      - name: Create Android project
+      # ============================================================
+      # 4. Android 프로젝트 생성
+      # ============================================================
+
+      - name: Create Android Project
         shell: bash
         run: |
           set -e
@@ -34,6 +50,11 @@ jobs:
           mkdir -p app/src/main/java/com/example/applegameauto
           mkdir -p app/src/main/res/xml
           mkdir -p app/src/main/res/values
+
+
+          # --------------------------------------------------------
+          # settings.gradle
+          # --------------------------------------------------------
 
           cat > settings.gradle <<'EOF'
           pluginManagement {
@@ -46,6 +67,7 @@ jobs:
 
           dependencyResolutionManagement {
               repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+
               repositories {
                   google()
                   mavenCentral()
@@ -53,8 +75,14 @@ jobs:
           }
 
           rootProject.name = "AppleGameAuto"
+
           include(":app")
           EOF
+
+
+          # --------------------------------------------------------
+          # Root build.gradle
+          # --------------------------------------------------------
 
           cat > build.gradle <<'EOF'
           plugins {
@@ -63,11 +91,21 @@ jobs:
           }
           EOF
 
+
+          # --------------------------------------------------------
+          # gradle.properties
+          # --------------------------------------------------------
+
           cat > gradle.properties <<'EOF'
           org.gradle.jvmargs=-Xmx4096m -Dfile.encoding=UTF-8
           android.useAndroidX=true
           kotlin.code.style=official
           EOF
+
+
+          # --------------------------------------------------------
+          # app/build.gradle
+          # --------------------------------------------------------
 
           cat > app/build.gradle <<'EOF'
           plugins {
@@ -77,22 +115,29 @@ jobs:
 
           android {
               namespace 'com.example.applegameauto'
+
               compileSdk 35
 
               defaultConfig {
-                  applicationId 'com.example.applegameauto'
+                  applicationId 'com.example.applegameauto"
+
                   minSdk 26
                   targetSdk 35
+
                   versionCode 1
-                  versionName '1.0'
+                  versionName "1.0"
               }
 
               buildTypes {
                   release {
                       minifyEnabled false
-                      proguardFiles getDefaultProguardFile(
+
+                      proguardFiles(
+                          getDefaultProguardFile(
                               'proguard-android-optimize.txt'
-                      ), 'proguard-rules.pro'
+                          ),
+                          'proguard-rules.pro'
+                      )
                   }
               }
 
@@ -107,28 +152,43 @@ jobs:
           }
 
           dependencies {
+
               implementation 'androidx.core:core-ktx:1.15.0'
+
               implementation 'androidx.appcompat:appcompat:1.7.0'
+
               implementation 'com.google.android.material:material:1.12.0'
 
               implementation 'com.google.mlkit:text-recognition:16.0.1'
           }
           EOF
 
+
+          # --------------------------------------------------------
+          # ProGuard
+          # --------------------------------------------------------
+
           cat > app/proguard-rules.pro <<'EOF'
           # No custom ProGuard rules.
           EOF
 
-          # ------------------------------------------------------------
+
+          # --------------------------------------------------------
           # AndroidManifest.xml
-          # ------------------------------------------------------------
+          # --------------------------------------------------------
 
           cat > app/src/main/AndroidManifest.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-              <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-              <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+          <manifest
+              xmlns:android="http://schemas.android.com/apk/res/android">
+
+              <uses-permission
+                  android:name="android.permission.FOREGROUND_SERVICE" />
+
+              <uses-permission
+                  android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+
 
               <application
                   android:allowBackup="false"
@@ -136,24 +196,34 @@ jobs:
                   android:supportsRtl="true"
                   android:theme="@style/AppTheme">
 
+
                   <activity
                       android:name=".MainActivity"
                       android:exported="true">
 
                       <intent-filter>
-                          <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
+
+                          <action
+                              android:name="android.intent.action.MAIN" />
+
+                          <category
+                              android:name="android.intent.category.LAUNCHER" />
+
                       </intent-filter>
 
                   </activity>
 
+
                   <service
                       android:name=".AppleAccessibilityService"
-                      android:exported="false"
+                      android:exported="true"
                       android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
 
                       <intent-filter>
-                          <action android:name="android.accessibilityservice.AccessibilityService" />
+
+                          <action
+                              android:name="android.accessibilityservice.AccessibilityService" />
+
                       </intent-filter>
 
                       <meta-data
@@ -161,6 +231,7 @@ jobs:
                           android:resource="@xml/accessibility_service_config" />
 
                   </service>
+
 
                   <service
                       android:name=".GameCaptureService"
@@ -172,26 +243,35 @@ jobs:
           </manifest>
           EOF
 
-          # ------------------------------------------------------------
+
+          # --------------------------------------------------------
           # strings.xml
-          # ------------------------------------------------------------
+          # --------------------------------------------------------
 
           cat > app/src/main/res/values/strings.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
+
           <resources>
-              <string name="app_name">사과게임 자동 플레이</string>
+
+              <string name="app_name">
+                  사과게임 자동 플레이
+              </string>
+
               <string name="accessibility_service_description">
                   사과게임의 숫자를 선택하기 위해 화면을 드래그합니다.
               </string>
+
           </resources>
           EOF
 
-          # ------------------------------------------------------------
+
+          # --------------------------------------------------------
           # themes.xml
-          # ------------------------------------------------------------
+          # --------------------------------------------------------
 
           cat > app/src/main/res/values/themes.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
+
           <resources>
 
               <style
@@ -199,35 +279,53 @@ jobs:
                   parent="Theme.Material3.DayNight.NoActionBar">
 
                   <item name="android:fontFamily">sans</item>
-                  <item name="android:windowLightStatusBar">true</item>
-                  <item name="android:statusBarColor">#FFFFFF</item>
-                  <item name="android:navigationBarColor">#FFFFFF</item>
-                  <item name="android:windowActionModeOverlay">true</item>
+
+                  <item name="android:windowLightStatusBar">
+                      true
+                  </item>
+
+                  <item name="android:statusBarColor">
+                      #FFFFFF
+                  </item>
+
+                  <item name="android:navigationBarColor">
+                      #FFFFFF
+                  </item>
 
               </style>
 
           </resources>
           EOF
 
-          # ------------------------------------------------------------
-          # Accessibility service config
-          # ------------------------------------------------------------
+
+          # --------------------------------------------------------
+          # 접근성 서비스 설정
+          # --------------------------------------------------------
 
           cat > app/src/main/res/xml/accessibility_service_config.xml <<'EOF'
           <?xml version="1.0" encoding="utf-8"?>
+
           <accessibility-service
               xmlns:android="http://schemas.android.com/apk/res/android"
+
               android:description="@string/accessibility_service_description"
+
               android:accessibilityEventTypes="typeAllMask"
+
               android:accessibilityFeedbackType="feedbackGeneric"
+
               android:notificationTimeout="100"
+
               android:canRetrieveWindowContent="false"
+
               android:canPerformGestures="true" />
+
           EOF
 
-          # ------------------------------------------------------------
+
+          # ========================================================
           # MainActivity.kt
-          # ------------------------------------------------------------
+          # ========================================================
 
           cat > app/src/main/java/com/example/applegameauto/MainActivity.kt <<'EOF'
           package com.example.applegameauto
@@ -252,100 +350,165 @@ jobs:
               override fun onCreate(savedInstanceState: Bundle?) {
                   super.onCreate(savedInstanceState)
 
-                  val layout = LinearLayout(this).apply {
-                      orientation = LinearLayout.VERTICAL
-                      setPadding(40, 60, 40, 40)
-                  }
+                  val layout = LinearLayout(this)
 
-                  val title = TextView(this).apply {
-                      text = "🍎 사과게임 자동 플레이"
-                      textSize = 25f
-                      setPadding(0, 0, 0, 30)
-                  }
+                  layout.orientation =
+                      LinearLayout.VERTICAL
 
-                  val info = TextView(this).apply {
-                      text = """
-                          사용 순서
-                          
-                          1. 접근성 서비스 켜기
-                          2. 화면 캡처 권한 허용
-                          3. 사과게임을 실행
-                          4. 자동 플레이 시작
-                          
-                          화면의 숫자를 인식하여 합이 10이 되는
-                          영역을 자동으로 드래그합니다.
+                  layout.setPadding(
+                      40,
+                      60,
+                      40,
+                      40
+                  )
+
+
+                  val title = TextView(this)
+
+                  title.text =
+                      "🍎 사과게임 자동 플레이"
+
+                  title.textSize = 25f
+
+                  title.setPadding(
+                      0,
+                      0,
+                      0,
+                      30
+                  )
+
+
+                  val info = TextView(this)
+
+                  info.text =
+                      """
+                      사용 방법
+
+                      1. 접근성 서비스 설정
+                      2. 화면 캡처 권한 허용
+                      3. 사과게임 실행
+                      4. 자동 플레이 시작
+
+                      화면의 숫자를 인식하여
+                      합이 10이 되는 영역을
+                      자동으로 드래그합니다.
                       """.trimIndent()
-                      textSize = 17f
-                      setPadding(0, 0, 0, 30)
-                  }
 
-                  val accessibilityButton = Button(this).apply {
-                      text = "① 접근성 서비스 설정"
-                      setOnClickListener {
-                          try {
-                              startActivity(
-                                  Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+                  info.textSize = 17f
+
+                  info.setPadding(
+                      0,
+                      0,
+                      0,
+                      30
+                  )
+
+
+                  val accessibilityButton =
+                      Button(this)
+
+                  accessibilityButton.text =
+                      "① 접근성 서비스 설정"
+
+                  accessibilityButton.setOnClickListener {
+
+                      try {
+
+                          startActivity(
+                              Intent(
+                                  Settings.ACTION_ACCESSIBILITY_SETTINGS
                               )
-                          } catch (e: Exception) {
-                              Toast.makeText(
-                                  this@MainActivity,
-                                  "접근성 설정을 열 수 없습니다.",
-                                  Toast.LENGTH_SHORT
-                              ).show()
-                          }
-                      }
-                  }
+                          )
 
-                  val captureButton = Button(this).apply {
-                      text = "② 화면 캡처 권한 허용"
-                      setOnClickListener {
-                          requestScreenCapture()
-                      }
-                  }
-
-                  val startButton = Button(this).apply {
-                      text = "③ 자동 플레이 시작"
-                      setOnClickListener {
-                          if (!AppleAccessibilityService.isEnabled) {
-                              Toast.makeText(
-                                  this@MainActivity,
-                                  "먼저 접근성 서비스를 켜주세요.",
-                                  Toast.LENGTH_LONG
-                              ).show()
-                              return@setOnClickListener
-                          }
-
-                          if (!GameCaptureService.hasPermission) {
-                              Toast.makeText(
-                                  this@MainActivity,
-                                  "먼저 화면 캡처 권한을 허용해주세요.",
-                                  Toast.LENGTH_LONG
-                              ).show()
-                              return@setOnClickListener
-                          }
-
-                          GameCaptureService.start(this@MainActivity)
+                      } catch (e: Exception) {
 
                           Toast.makeText(
-                              this@MainActivity,
-                              "자동 플레이를 시작했습니다.",
+                              this,
+                              "접근성 설정을 열 수 없습니다.",
                               Toast.LENGTH_SHORT
                           ).show()
+
                       }
+
                   }
 
-                  val stopButton = Button(this).apply {
-                      text = "④ 자동 플레이 중지"
-                      setOnClickListener {
-                          GameCaptureService.stop(this@MainActivity)
+
+                  val captureButton =
+                      Button(this)
+
+                  captureButton.text =
+                      "② 화면 캡처 권한 허용"
+
+                  captureButton.setOnClickListener {
+
+                      requestScreenCapture()
+
+                  }
+
+
+                  val startButton =
+                      Button(this)
+
+                  startButton.text =
+                      "③ 자동 플레이 시작"
+
+                  startButton.setOnClickListener {
+
+                      if (
+                          !AppleAccessibilityService.isEnabled
+                      ) {
 
                           Toast.makeText(
-                              this@MainActivity,
-                              "자동 플레이를 중지했습니다.",
-                              Toast.LENGTH_SHORT
+                              this,
+                              "먼저 접근성 서비스를 켜주세요.",
+                              Toast.LENGTH_LONG
                           ).show()
+
+                          return@setOnClickListener
                       }
+
+
+                      if (
+                          !GameCaptureService.hasPermission
+                      ) {
+
+                          Toast.makeText(
+                              this,
+                              "먼저 화면 캡처 권한을 허용해주세요.",
+                              Toast.LENGTH_LONG
+                          ).show()
+
+                          return@setOnClickListener
+                      }
+
+
+                      GameCaptureService.start(this)
+
+                      Toast.makeText(
+                          this,
+                          "자동 플레이를 시작했습니다.",
+                          Toast.LENGTH_SHORT
+                      ).show()
                   }
+
+
+                  val stopButton =
+                      Button(this)
+
+                  stopButton.text =
+                      "④ 자동 플레이 중지"
+
+                  stopButton.setOnClickListener {
+
+                      GameCaptureService.stop(this)
+
+                      Toast.makeText(
+                          this,
+                          "자동 플레이를 중지했습니다.",
+                          Toast.LENGTH_SHORT
+                      ).show()
+                  }
+
 
                   layout.addView(title)
                   layout.addView(info)
@@ -357,10 +520,14 @@ jobs:
                   setContentView(layout)
               }
 
+
               private fun requestScreenCapture() {
+
                   val manager =
-                      getSystemService(Context.MEDIA_PROJECTION_SERVICE)
-                              as MediaProjectionManager
+                      getSystemService(
+                          Context.MEDIA_PROJECTION_SERVICE
+                      ) as MediaProjectionManager
+
 
                   startActivityForResult(
                       manager.createScreenCaptureIntent(),
@@ -368,21 +535,31 @@ jobs:
                   )
               }
 
+
               override fun onActivityResult(
                   requestCode: Int,
                   resultCode: Int,
                   data: Intent?
               ) {
-                  super.onActivityResult(requestCode, resultCode, data)
 
-                  if (requestCode == REQUEST_CAPTURE &&
+                  super.onActivityResult(
+                      requestCode,
+                      resultCode,
+                      data
+                  )
+
+
+                  if (
+                      requestCode == REQUEST_CAPTURE &&
                       resultCode == RESULT_OK &&
                       data != null
                   ) {
+
                       GameCaptureService.savePermission(
                           resultCode,
                           data
                       )
+
 
                       Toast.makeText(
                           this,
@@ -394,9 +571,10 @@ jobs:
           }
           EOF
 
-          # ------------------------------------------------------------
+
+          # ========================================================
           # AppleAccessibilityService.kt
-          # ------------------------------------------------------------
+          # ========================================================
 
           cat > app/src/main/java/com/example/applegameauto/AppleAccessibilityService.kt <<'EOF'
           package com.example.applegameauto
@@ -407,31 +585,43 @@ jobs:
           import android.os.Build
           import android.view.accessibility.AccessibilityEvent
 
-          class AppleAccessibilityService : AccessibilityService() {
+          class AppleAccessibilityService :
+              AccessibilityService() {
 
               companion object {
+
                   @Volatile
-                  var instance: AppleAccessibilityService? = null
+                  var instance:
+                      AppleAccessibilityService? = null
 
                   @Volatile
                   var isEnabled: Boolean = false
               }
 
+
               override fun onServiceConnected() {
+
                   super.onServiceConnected()
 
                   instance = this
+
                   isEnabled = true
               }
 
-              override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-                  // 화면의 UI를 읽지는 않습니다.
+
+              override fun onAccessibilityEvent(
+                  event: AccessibilityEvent?
+              ) {
+                  // UI 내용은 읽지 않습니다.
               }
+
 
               override fun onInterrupt() {
               }
 
+
               override fun onDestroy() {
+
                   isEnabled = false
 
                   if (instance === this) {
@@ -441,6 +631,7 @@ jobs:
                   super.onDestroy()
               }
 
+
               fun swipe(
                   startX: Float,
                   startY: Float,
@@ -448,23 +639,41 @@ jobs:
                   endY: Float,
                   duration: Long = 180L
               ) {
-                  if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+
+                  if (
+                      Build.VERSION.SDK_INT <
+                      Build.VERSION_CODES.N
+                  ) {
                       return
                   }
 
-                  val path = Path()
-                  path.moveTo(startX, startY)
-                  path.lineTo(endX, endY)
 
-                  val stroke = GestureDescription.StrokeDescription(
-                      path,
-                      0L,
-                      duration
+                  val path = Path()
+
+                  path.moveTo(
+                      startX,
+                      startY
                   )
 
-                  val gesture = GestureDescription.Builder()
-                      .addStroke(stroke)
-                      .build()
+                  path.lineTo(
+                      endX,
+                      endY
+                  )
+
+
+                  val stroke =
+                      GestureDescription.StrokeDescription(
+                          path,
+                          0L,
+                          duration
+                      )
+
+
+                  val gesture =
+                      GestureDescription.Builder()
+                          .addStroke(stroke)
+                          .build()
+
 
                   dispatchGesture(
                       gesture,
@@ -475,17 +684,16 @@ jobs:
           }
           EOF
 
-          # ------------------------------------------------------------
+
+          # ========================================================
           # GameCaptureService.kt
-          # ------------------------------------------------------------
+          # ========================================================
 
           cat > app/src/main/java/com/example/applegameauto/GameCaptureService.kt <<'EOF'
           package com.example.applegameauto
 
-          import android.app.Notification
           import android.app.NotificationChannel
           import android.app.NotificationManager
-          import android.app.PendingIntent
           import android.app.Service
           import android.content.Context
           import android.content.Intent
@@ -506,45 +714,123 @@ jobs:
           import com.google.mlkit.vision.text.TextRecognition
           import com.google.mlkit.vision.text.latin.TextRecognizerOptions
           import kotlin.math.abs
-          import kotlin.math.min
 
-          class GameCaptureService : Service() {
+
+          class GameCaptureService :
+              Service() {
+
+
+              // ====================================================
+              // 모든 companion object를 하나로 통합
+              // ====================================================
 
               companion object {
 
-                  private const val CHANNEL_ID = "apple_game_auto"
-                  private const val NOTIFICATION_ID = 100
+                  private const val CHANNEL_ID =
+                      "apple_game_auto"
 
-                  private var permissionResultCode: Int = 0
-                  private var permissionData: Intent? = null
+                  private const val NOTIFICATION_ID =
+                      100
+
+
+                  private const val ROWS =
+                      9
+
+                  private const val COLS =
+                      18
+
+
+                  // 기준 화면 크기
+                  private const val REF_WIDTH =
+                      1536f
+
+                  private const val REF_HEIGHT =
+                      960f
+
+
+                  // 첫 번째 숫자 중심
+                  private const val FIRST_X =
+                      96f
+
+                  private const val FIRST_Y =
+                      200f
+
+
+                  // 숫자 사이 간격
+                  private const val X_GAP =
+                      78.3f
+
+                  private const val Y_GAP =
+                      78.3f
+
+
+                  // OCR 좌표 허용 오차
+                  private const val CELL_TOLERANCE =
+                      35f
+
+
+                  private var permissionResultCode =
+                      0
+
+                  private var permissionData:
+                      Intent? = null
+
 
                   @Volatile
-                  var hasPermission: Boolean = false
+                  var hasPermission =
+                      false
                       private set
+
 
                   fun savePermission(
                       resultCode: Int,
                       data: Intent
                   ) {
-                      permissionResultCode = resultCode
-                      permissionData = data
-                      hasPermission = true
+
+                      permissionResultCode =
+                          resultCode
+
+                      permissionData =
+                          data
+
+                      hasPermission =
+                          true
                   }
 
-                  fun start(context: Context) {
-                      val intent = Intent(
-                          context,
-                          GameCaptureService::class.java
-                      )
 
-                      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                          context.startForegroundService(intent)
+                  fun start(
+                      context: Context
+                  ) {
+
+                      val intent =
+                          Intent(
+                              context,
+                              GameCaptureService::class.java
+                          )
+
+
+                      if (
+                          Build.VERSION.SDK_INT >=
+                          Build.VERSION_CODES.O
+                      ) {
+
+                          context.startForegroundService(
+                              intent
+                          )
+
                       } else {
-                          context.startService(intent)
+
+                          context.startService(
+                              intent
+                          )
                       }
                   }
 
-                  fun stop(context: Context) {
+
+                  fun stop(
+                      context: Context
+                  ) {
+
                       context.stopService(
                           Intent(
                               context,
@@ -554,41 +840,77 @@ jobs:
                   }
               }
 
+
+              // ====================================================
+              // 변수
+              // ====================================================
+
               private val handler =
-                  Handler(Looper.getMainLooper())
+                  Handler(
+                      Looper.getMainLooper()
+                  )
 
-              private var projection: MediaProjection? = null
-              private var virtualDisplay: VirtualDisplay? = null
-              private var imageReader: ImageReader? = null
 
-              private var screenWidth = 0
-              private var screenHeight = 0
-              private var density = 0
+              private var projection:
+                  MediaProjection? = null
+
+
+              private var virtualDisplay:
+                  VirtualDisplay? = null
+
+
+              private var imageReader:
+                  ImageReader? = null
+
+
+              private var screenWidth =
+                  0
+
+              private var screenHeight =
+                  0
+
+              private var density =
+                  0
+
+
+              private var processing =
+                  false
+
 
               private val recognizer =
                   TextRecognition.getClient(
                       TextRecognizerOptions.DEFAULT_OPTIONS
                   )
 
-              private var processing = false
+
+              // ====================================================
+              // Service 생성
+              // ====================================================
 
               override fun onCreate() {
+
                   super.onCreate()
 
                   createNotificationChannel()
+
 
                   val notification =
                       NotificationCompat.Builder(
                           this,
                           CHANNEL_ID
                       )
-                          .setContentTitle("사과게임 자동 플레이")
-                          .setContentText("화면을 분석하고 있습니다.")
+                          .setContentTitle(
+                              "사과게임 자동 플레이"
+                          )
+                          .setContentText(
+                              "화면을 분석하고 있습니다."
+                          )
                           .setSmallIcon(
                               android.R.drawable.ic_media_play
                           )
                           .setOngoing(true)
                           .build()
+
 
                   startForeground(
                       NOTIFICATION_ID,
@@ -596,50 +918,87 @@ jobs:
                   )
               }
 
+
+              // ====================================================
+              // 시작
+              // ====================================================
+
               override fun onStartCommand(
                   intent: Intent?,
                   flags: Int,
                   startId: Int
               ): Int {
 
-                  if (projection == null) {
+                  if (
+                      projection == null
+                  ) {
+
                       startCapture()
                   }
 
-                  return START_STICKY
+
+                  return START_NOT_STICKY
               }
+
+
+              // ====================================================
+              // 화면 캡처 시작
+              // ====================================================
 
               private fun startCapture() {
 
-                  val data = permissionData
+                  val data =
+                      permissionData
 
-                  if (!hasPermission || data == null) {
+
+                  if (
+                      !hasPermission ||
+                      data == null
+                  ) {
+
                       stopSelf()
+
                       return
                   }
+
 
                   val manager =
                       getSystemService(
                           Context.MEDIA_PROJECTION_SERVICE
                       ) as MediaProjectionManager
 
+
                   try {
+
                       projection =
                           manager.getMediaProjection(
                               permissionResultCode,
                               data
                           )
-                  } catch (e: Exception) {
+
+                  } catch (
+                      e: Exception
+                  ) {
+
                       stopSelf()
+
                       return
                   }
+
 
                   val metrics =
                       resources.displayMetrics
 
-                  screenWidth = metrics.widthPixels
-                  screenHeight = metrics.heightPixels
-                  density = metrics.densityDpi
+
+                  screenWidth =
+                      metrics.widthPixels
+
+                  screenHeight =
+                      metrics.heightPixels
+
+                  density =
+                      metrics.densityDpi
+
 
                   imageReader =
                       ImageReader.newInstance(
@@ -649,10 +1008,13 @@ jobs:
                           2
                       )
 
+
                   projection?.registerCallback(
-                      object : MediaProjection.Callback() {
+                      object :
+                          MediaProjection.Callback() {
 
                           override fun onStop() {
+
                               handler.post {
                                   stopSelf()
                               }
@@ -661,6 +1023,7 @@ jobs:
                       },
                       handler
                   )
+
 
                   virtualDisplay =
                       projection?.createVirtualDisplay(
@@ -674,65 +1037,125 @@ jobs:
                           handler
                       )
 
+
                   imageReader?.setOnImageAvailableListener(
                       { reader ->
+
                           if (!processing) {
-                              processing = true
+
+                              processing =
+                                  true
+
 
                               val image =
                                   reader.acquireLatestImage()
 
-                              if (image != null) {
-                                  processImage(image)
+
+                              if (
+                                  image != null
+                              ) {
+
+                                  processImage(
+                                      image
+                                  )
+
                               } else {
-                                  processing = false
+
+                                  processing =
+                                      false
                               }
                           }
+
                       },
                       handler
                   )
               }
 
-              private fun processImage(image: Image) {
+
+              // ====================================================
+              // 이미지 처리
+              // ====================================================
+
+              private fun processImage(
+                  image: Image
+              ) {
 
                   try {
+
                       val bitmap =
-                          imageToBitmap(image)
+                          imageToBitmap(
+                              image
+                          )
+
 
                       image.close()
 
-                      if (bitmap == null) {
-                          processing = false
+
+                      if (
+                          bitmap == null
+                      ) {
+
+                          processing =
+                              false
+
                           return
                       }
 
-                      recognizeBoard(bitmap)
 
-                  } catch (e: Exception) {
+                      recognizeBoard(
+                          bitmap
+                      )
+
+                  } catch (
+                      e: Exception
+                  ) {
+
                       try {
                           image.close()
                       } catch (_: Exception) {
                       }
 
-                      processing = false
+
+                      processing =
+                          false
                   }
               }
+
+
+              // ====================================================
+              // Image → Bitmap
+              // ====================================================
 
               private fun imageToBitmap(
                   image: Image
               ): Bitmap? {
 
-                  val plane = image.planes.firstOrNull()
-                      ?: return null
+                  val plane =
+                      image.planes.firstOrNull()
+                          ?: return null
 
-                  val buffer = plane.buffer
-                  val pixelStride = plane.pixelStride
-                  val rowStride = plane.rowStride
+
+                  val buffer =
+                      plane.buffer
+
+                  val pixelStride =
+                      plane.pixelStride
+
+                  val rowStride =
+                      plane.rowStride
+
+
                   val rowPadding =
-                      rowStride - pixelStride * image.width
+                      rowStride -
+                              pixelStride *
+                              image.width
+
 
                   val bitmapWidth =
-                      image.width + rowPadding / pixelStride
+                      image.width +
+                              rowPadding /
+                              pixelStride
+
 
                   val bitmap =
                       Bitmap.createBitmap(
@@ -741,9 +1164,14 @@ jobs:
                           Bitmap.Config.ARGB_8888
                       )
 
+
                   buffer.rewind()
 
-                  bitmap.copyPixelsFromBuffer(buffer)
+
+                  bitmap.copyPixelsFromBuffer(
+                      buffer
+                  )
+
 
                   return Bitmap.createBitmap(
                       bitmap,
@@ -753,6 +1181,11 @@ jobs:
                       image.height
                   )
               }
+
+
+              // ====================================================
+              // OCR
+              // ====================================================
 
               private fun recognizeBoard(
                   bitmap: Bitmap
@@ -764,85 +1197,149 @@ jobs:
                           0
                       )
 
-                  recognizer.process(image)
+
+                  recognizer
+                      .process(image)
                       .addOnSuccessListener { result ->
 
                           val board =
-                              Array(ROWS) {
-                                  IntArray(COLS)
+                              Array(
+                                  ROWS
+                              ) {
+                                  IntArray(
+                                      COLS
+                                  )
                               }
+
 
                           val scaleX =
                               screenWidth.toFloat() /
                                       REF_WIDTH
 
+
                           val scaleY =
                               screenHeight.toFloat() /
                                       REF_HEIGHT
 
-                          for (block in result.textBlocks) {
-                              for (line in block.lines) {
-                                  for (element in line.elements) {
+
+                          for (
+                              block in
+                              result.textBlocks
+                          ) {
+
+                              for (
+                                  line in
+                                  block.lines
+                              ) {
+
+                                  for (
+                                      element in
+                                      line.elements
+                                  ) {
 
                                       val raw =
                                           element.text
                                               .trim()
 
+
                                       if (
                                           raw.length != 1 ||
                                           raw[0] !in '1'..'9'
                                       ) {
+
                                           continue
                                       }
+
 
                                       val box =
                                           element.boundingBox
                                               ?: continue
 
+
                                       val centerX =
-                                          (box.left + box.right) / 2f
+                                          (
+                                              box.left +
+                                                      box.right
+                                              ) / 2f
+
 
                                       val centerY =
-                                          (box.top + box.bottom) / 2f
+                                          (
+                                              box.top +
+                                                      box.bottom
+                                              ) / 2f
+
 
                                       val refX =
-                                          centerX / scaleX
+                                          centerX /
+                                                  scaleX
+
 
                                       val refY =
-                                          centerY / scaleY
+                                          centerY /
+                                                  scaleY
+
 
                                       val col =
-                                          ((refX - FIRST_X) /
-                                                  X_GAP)
-                                              .toInt()
+                                          (
+                                              (
+                                                  refX -
+                                                          FIRST_X
+                                                  ) /
+                                                      X_GAP
+                                              ).toInt()
+
 
                                       val row =
-                                          ((refY - FIRST_Y) /
-                                                  Y_GAP)
-                                              .toInt()
+                                          (
+                                              (
+                                                  refY -
+                                                          FIRST_Y
+                                                  ) /
+                                                      Y_GAP
+                                              ).toInt()
+
 
                                       if (
-                                          row in 0 until ROWS &&
-                                          col in 0 until COLS
+                                          row in
+                                          0 until ROWS &&
+                                          col in
+                                          0 until COLS
                                       ) {
+
+                                          val expectedX =
+                                              FIRST_X +
+                                                      col *
+                                                      X_GAP
+
+
+                                          val expectedY =
+                                              FIRST_Y +
+                                                      row *
+                                                      Y_GAP
+
+
                                           val distanceX =
                                               abs(
                                                   refX -
-                                                          (FIRST_X +
-                                                                  col * X_GAP)
+                                                          expectedX
                                               )
+
 
                                           val distanceY =
                                               abs(
                                                   refY -
-                                                          (FIRST_Y +
-                                                                  row * Y_GAP)
+                                                          expectedY
                                               )
 
+
                                           if (
-                                              distanceX < CELL_TOLERANCE &&
-                                              distanceY < CELL_TOLERANCE
+                                              distanceX <
+                                              CELL_TOLERANCE &&
+                                              distanceY <
+                                              CELL_TOLERANCE
                                           ) {
+
                                               board[row][col] =
                                                   raw.toInt()
                                           }
@@ -851,31 +1348,62 @@ jobs:
                               }
                           }
 
-                          val move =
-                              findSumTen(board)
 
-                          if (move != null) {
-                              performMove(move)
+                          val move =
+                              findSumTen(
+                                  board
+                              )
+
+
+                          if (
+                              move != null
+                          ) {
+
+                              performMove(
+                                  move
+                              )
+
                           } else {
-                              processing = false
+
+                              processing =
+                                  false
                           }
+
                       }
                       .addOnFailureListener {
-                          processing = false
+
+                          processing =
+                              false
                       }
               }
+
+
+              // ====================================================
+              // 합이 10인 영역 찾기
+              // ====================================================
 
               private fun findSumTen(
                   board: Array<IntArray>
               ): Move? {
 
                   val prefix =
-                      Array(ROWS + 1) {
-                          IntArray(COLS + 1)
+                      Array(
+                          ROWS + 1
+                      ) {
+                          IntArray(
+                              COLS + 1
+                          )
                       }
 
-                  for (r in 0 until ROWS) {
-                      for (c in 0 until COLS) {
+
+                  for (
+                      r in 0 until ROWS
+                  ) {
+
+                      for (
+                          c in 0 until COLS
+                      ) {
+
                           prefix[r + 1][c + 1] =
                               board[r][c] +
                                       prefix[r][c + 1] +
@@ -884,14 +1412,30 @@ jobs:
                       }
                   }
 
-                  var best: Move? = null
-                  var bestArea = Int.MAX_VALUE
 
-                  for (r1 in 0 until ROWS) {
-                      for (c1 in 0 until COLS) {
+                  var best:
+                      Move? = null
 
-                          for (r2 in r1 until ROWS) {
-                              for (c2 in c1 until COLS) {
+
+                  var bestArea =
+                      Int.MAX_VALUE
+
+
+                  for (
+                      r1 in 0 until ROWS
+                  ) {
+
+                      for (
+                          c1 in 0 until COLS
+                      ) {
+
+                          for (
+                              r2 in r1 until ROWS
+                          ) {
+
+                              for (
+                                  c2 in c1 until COLS
+                              ) {
 
                                   val sum =
                                       prefix[r2 + 1][c2 + 1] -
@@ -899,14 +1443,32 @@ jobs:
                                               prefix[r2 + 1][c1] +
                                               prefix[r1][c1]
 
-                                  if (sum == 10) {
+
+                                  if (
+                                      sum == 10
+                                  ) {
 
                                       val area =
-                                          (r2 - r1 + 1) *
-                                                  (c2 - c1 + 1)
+                                          (
+                                              r2 -
+                                                      r1 +
+                                                      1
+                                              ) *
+                                                  (
+                                                      c2 -
+                                                              c1 +
+                                                              1
+                                                  )
 
-                                      if (area < bestArea) {
-                                          bestArea = area
+
+                                      if (
+                                          area <
+                                          bestArea
+                                      ) {
+
+                                          bestArea =
+                                              area
+
 
                                           best =
                                               Move(
@@ -922,8 +1484,14 @@ jobs:
                       }
                   }
 
+
                   return best
               }
+
+
+              // ====================================================
+              // 실제 드래그
+              // ====================================================
 
               private fun performMove(
                   move: Move
@@ -933,37 +1501,62 @@ jobs:
                       screenWidth.toFloat() /
                               REF_WIDTH
 
+
                   val scaleY =
                       screenHeight.toFloat() /
                               REF_HEIGHT
 
+
                   val startX =
-                      (FIRST_X +
-                              move.c1 * X_GAP) *
+                      (
+                          FIRST_X +
+                                  move.c1 *
+                                  X_GAP
+                          ) *
                               scaleX
+
 
                   val startY =
-                      (FIRST_Y +
-                              move.r1 * Y_GAP) *
+                      (
+                          FIRST_Y +
+                                  move.r1 *
+                                  Y_GAP
+                          ) *
                               scaleY
+
 
                   val endX =
-                      (FIRST_X +
-                              move.c2 * X_GAP) *
+                      (
+                          FIRST_X +
+                                  move.c2 *
+                                  X_GAP
+                          ) *
                               scaleX
 
+
                   val endY =
-                      (FIRST_Y +
-                              move.r2 * Y_GAP) *
+                      (
+                          FIRST_Y +
+                                  move.r2 *
+                                  Y_GAP
+                          ) *
                               scaleY
+
 
                   val service =
                       AppleAccessibilityService.instance
 
-                  if (service == null) {
-                      processing = false
+
+                  if (
+                      service == null
+                  ) {
+
+                      processing =
+                          false
+
                       return
                   }
+
 
                   service.swipe(
                       startX,
@@ -973,13 +1566,22 @@ jobs:
                       180L
                   )
 
+
                   handler.postDelayed(
                       {
-                          processing = false
+
+                          processing =
+                              false
+
                       },
                       550L
                   )
               }
+
+
+              // ====================================================
+              // 알림 채널
+              // ====================================================
 
               private fun createNotificationChannel() {
 
@@ -995,10 +1597,12 @@ jobs:
                               NotificationManager.IMPORTANCE_LOW
                           )
 
+
                       val manager =
                           getSystemService(
                               NotificationManager::class.java
                           )
+
 
                       manager.createNotificationChannel(
                           channel
@@ -1006,75 +1610,96 @@ jobs:
                   }
               }
 
+
+              // ====================================================
+              // 종료
+              // ====================================================
+
               override fun onDestroy() {
 
-                  processing = false
+                  processing =
+                      false
 
-                  handler.removeCallbacksAndMessages(null)
+
+                  handler.removeCallbacksAndMessages(
+                      null
+                  )
+
 
                   imageReader?.close()
-                  imageReader = null
+
+                  imageReader =
+                      null
+
 
                   virtualDisplay?.release()
-                  virtualDisplay = null
+
+                  virtualDisplay =
+                      null
+
 
                   projection?.stop()
-                  projection = null
+
+                  projection =
+                      null
+
 
                   recognizer.close()
+
 
                   super.onDestroy()
               }
 
+
               override fun onBind(
                   intent: Intent?
               ): IBinder? {
+
                   return null
               }
 
+
+              // ====================================================
+              // 이동 정보
+              // ====================================================
+
               data class Move(
+
                   val r1: Int,
+
                   val c1: Int,
+
                   val r2: Int,
+
                   val c2: Int
               )
-
-              companion object {
-
-                  private const val ROWS = 9
-                  private const val COLS = 18
-
-                  // 기준 화면: 1536 × 960
-                  private const val REF_WIDTH = 1536f
-                  private const val REF_HEIGHT = 960f
-
-                  // 첫 번째 사과 중심 좌표
-                  private const val FIRST_X = 96f
-                  private const val FIRST_Y = 200f
-
-                  // 사과 사이 간격
-                  private const val X_GAP = 78.3f
-                  private const val Y_GAP = 78.3f
-
-                  // OCR 좌표 허용 범위
-                  private const val CELL_TOLERANCE = 35f
-              }
           }
           EOF
 
-      # ------------------------------------------------------------
-      # Build
-      # ------------------------------------------------------------
+
+      # ============================================================
+      # 5. Gradle 캐시/프로젝트 정리
+      # ============================================================
 
       - name: Clean
-        run: gradle clean
+        run: |
+          gradle clean --no-daemon
+
+
+      # ============================================================
+      # 6. APK 빌드
+      # ============================================================
 
       - name: Build APK
-        run: gradle assembleDebug --stacktrace --warning-mode all
+        run: |
+          gradle assembleDebug \
+            --no-daemon \
+            --stacktrace
 
-      # ------------------------------------------------------------
-      # Upload APK
-      # ------------------------------------------------------------
+
+      # ============================================================
+      # 7. APK 업로드
+      # ============================================================
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
